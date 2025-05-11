@@ -1,29 +1,29 @@
 FROM ubuntu:22.04
 
+# Non-interactive installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install all needed dependencies and Wetty
+# Install GoTTY prerequisites and Go compiler
 RUN apt-get update && \
-    apt-get install -y \
-        curl ca-certificates gnupg openssh-client \
-        bash tini build-essential python3 \
-        git wget && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g wetty && \
+    apt-get install -y --no-install-recommends \
+        curl ca-certificates git build-essential golang-go bash tini && \
     rm -rf /var/lib/apt/lists/*
 
-# Fix mobile input issue: set TERM
-ENV TERM xterm-256color
+# Install GoTTY
+RUN go install github.com/yudai/gotty@latest
 
-# Optional: a cleaner prompt
-RUN echo "export PS1='\u@\h:\w\$ '" >> /etc/profile
+# Ensure Go bin is in PATH
+ENV PATH=$PATH:/root/go/bin
 
-# Expose Wetty default port
-EXPOSE 3000
+# Optional: customize prompt and alias
+RUN echo "export PS1='\u@\h:\w\$ '" >> /etc/profile && \
+    echo "alias poweroff='kill 1'" >> /etc/profile
 
-# Use tini for proper PID 1 handling
+# Expose GoTTY default port
+EXPOSE 8080
+
+# Use tini as PID 1 for signal handling
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# CMD: Start wetty with bash shell (very important!)
-CMD ["wetty", "--port", "3000", "--base", "/", "--command", "/bin/bash"]
+# Start GoTTY on /, running bash
+CMD ["gotty", "--port", "8080", "--base", "/", "--permit-write", "bash"]
