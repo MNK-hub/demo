@@ -2,22 +2,23 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install dependencies
+# Install dependencies + NodeSource Node.js 20
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        curl ca-certificates openssh-client \
-        nodejs npm bash tini && \
+    apt-get install -y curl ca-certificates gnupg openssh-client bash tini && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
     npm install -g wetty && \
     rm -rf /var/lib/apt/lists/*
 
-# Add fake poweroff
+# Customize terminal
 RUN echo "alias poweroff='kill 1'" >> /etc/profile && \
     echo "export PS1='\033[01;32m\u@\h\033[00m:\033[01;34m\w\033[00m\$ '" >> /etc/profile
 
-# Use tini for proper PID 1 handling
+# Port for Wetty
+EXPOSE 3000
+
+# PID 1 support
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# Run Wetty on port 3000
+# Start Wetty terminal
 CMD ["wetty", "--port", "3000", "--command", "/bin/bash"]
-
-EXPOSE 3000
