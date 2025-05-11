@@ -1,29 +1,28 @@
 FROM ubuntu:22.04
 
-# Non-interactive installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install GoTTY prerequisites and Go compiler
+# 1. Install minimal prerequisites
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        curl ca-certificates git build-essential golang-go bash tini && \
+        curl ca-certificates bash tini && \
     rm -rf /var/lib/apt/lists/*
 
-# Install GoTTY
-RUN go install github.com/yudai/gotty@latest
+# 2. Fetch and install GoTTY binary (v1.0.1)
+RUN curl -fsSL \
+      https://github.com/yudai/gotty/releases/download/v1.0.1/gotty_linux_amd64.tar.gz \
+    | tar xz -C /usr/local/bin --strip-components=1 gotty_linux_amd64/gotty && \
+    chmod +x /usr/local/bin/gotty
 
-# Ensure Go bin is in PATH
-ENV PATH=$PATH:/root/go/bin
-
-# Optional: customize prompt and alias
-RUN echo "export PS1='\u@\h:\w\$ '" >> /etc/profile && \
+# 3. (Optional) Customize prompt and alias
+RUN echo "export PS1='\\u@\\h:\\w\\$ '" >> /etc/profile && \
     echo "alias poweroff='kill 1'" >> /etc/profile
 
-# Expose GoTTY default port
+# 4. Expose default GoTTY port
 EXPOSE 8080
 
-# Use tini as PID 1 for signal handling
+# 5. Use tini for proper signal handling
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# Start GoTTY on /, running bash
+# 6. Run GoTTY, permitting input
 CMD ["gotty", "--port", "8080", "--base", "/", "--permit-write", "bash"]
