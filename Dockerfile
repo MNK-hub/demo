@@ -2,23 +2,28 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install dependencies and Node.js 20
+# Install all needed dependencies and Wetty
 RUN apt-get update && \
-    apt-get install -y curl ca-certificates gnupg openssh-client bash tini build-essential python3 && \
+    apt-get install -y \
+        curl ca-certificates gnupg openssh-client \
+        bash tini build-essential python3 \
+        git wget && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g wetty && \
     rm -rf /var/lib/apt/lists/*
 
-# Set up a basic prompt and alias for 'poweroff'
-RUN echo "alias poweroff='kill 1'" >> /etc/profile && \
-    echo "export PS1='\033[01;32m\u@\h\033[00m:\033[01;34m\w\033[00m\$ '" >> /etc/profile
+# Fix mobile input issue: set TERM
+ENV TERM xterm-256color
 
-# Expose Wetty port
+# Optional: a cleaner prompt
+RUN echo "export PS1='\u@\h:\w\$ '" >> /etc/profile
+
+# Expose Wetty default port
 EXPOSE 3000
 
-# tini as PID 1
+# Use tini for proper PID 1 handling
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# Start Wetty (force shell and base path)
+# CMD: Start wetty with bash shell (very important!)
 CMD ["wetty", "--port", "3000", "--base", "/", "--command", "/bin/bash"]
