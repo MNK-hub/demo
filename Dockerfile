@@ -1,28 +1,24 @@
 FROM ubuntu:22.04
+
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Install minimal prerequisites
+# 1. Install openssh-server and bash
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      curl ca-certificates bash tini && \
+      openssh-server bash && \
+    mkdir -p /var/run/sshd && \
     rm -rf /var/lib/apt/lists/*
 
-# 2. Download and install GoTTY v1.0.1 binary
-RUN curl -fsSL \
-      https://github.com/yudai/gotty/releases/download/v1.0.1/gotty_linux_amd64.tar.gz \
-    | tar xz -C /usr/local/bin && \
-    chmod +x /usr/local/bin/gotty
+# 2. Configure root login (password = 'root'; change as soon as you can)
+RUN echo 'root:root' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/PermitEmptyPasswords no/PermitEmptyPasswords yes/' /etc/ssh/sshd_config
 
-# 3. Expose GoTTY port
-EXPOSE 8080
+# 3. (Optional) a nicer prompt
+RUN echo "export PS1='\\u@\\h:\\w\\$ '" >> /etc/profile
 
-# 4. Use tini as PID 1
-ENTRYPOINT ["/usr/bin/tini", "--"]
+# 4. Expose SSH port
+EXPOSE 22
 
-# 5. Launch GoTTY with a 32-character random URL path
-CMD ["gotty", \
-     "--port", "8080", \
-     "--permit-write", \
-     "--random-url", \
-     "--random-url-length", "32", \
-     "bash"]
+# 5. Start sshd in foreground
+CMD ["/usr/sbin/sshd","-D"]
