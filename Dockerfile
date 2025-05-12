@@ -17,7 +17,7 @@ RUN curl -fsSL \
 # 3. Configure Nginx as reverse-proxy for GoTTY
 RUN rm /etc/nginx/sites-enabled/default
 
-RUN cat << 'EOF' > /etc/nginx/conf.d/gotty.conf
+RUN bash -c "cat << 'EOF' > /etc/nginx/conf.d/gotty.conf
 server {
     listen 8080;
 
@@ -25,9 +25,9 @@ server {
     location /7190@99146#6819/ppqp@GaeylpYy/ppYTR681#@o {
         proxy_pass http://127.0.0.1:8081/;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
     }
 
     # Return 404 elsewhere
@@ -35,7 +35,7 @@ server {
         return 404;
     }
 }
-EOF
+EOF"
 
 # 4. (Optional) Customize prompt & alias
 RUN echo "export PS1='\\u@\\h:\\w\\$ '" >> /etc/profile && \
