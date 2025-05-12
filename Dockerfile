@@ -1,32 +1,34 @@
-# Use Ubuntu as the base (you get a full root system)
-FROM ubuntu:22.04
+# Use official Python image
+FROM python:3.11-slim
 
-# Avoid interactive prompts
-ENV DEBIAN_FRONTEND=noninteractive
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    JUPYTER_ALLOW_INSECURE_WRITES=true
 
-# 1. Install and configure OpenSSH
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends openssh-server bash && \
-    rm -rf /var/lib/apt/lists/* && \
-    \
-    # Ensure sshd can start (create runtime dir)
-    mkdir -p /var/run/sshd && \
-    \
-    # Generate host keys on build (optional; you can also do this at runtime)
-    ssh-keygen -A && \
-    \
-    # Set root password to 'root' (change this in production!)
-    echo 'root:root' | chpasswd && \
-    \
-    # Permit root login with password
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-    sed -i 's/PermitEmptyPasswords no/PermitEmptyPasswords yes/'  /etc/ssh/sshd_config
+# Install necessary packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    ca-certificates \
+    vim \
+    less \
+    net-tools \
+    iputils-ping \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
 
-# 2. (Optional) a nicer prompt for root
-RUN echo "export PS1='\\u@\\h:\\w\\$ '" >> /etc/profile
+# Install JupyterLab
+RUN pip install --upgrade pip && \
+    pip install jupyterlab
 
-# 3. Expose SSH port
-EXPOSE 22
+# Set working directory
+WORKDIR /workspace
 
-# 4. Start sshd in foreground
-CMD ["/usr/sbin/sshd","-D"]
+# Expose port
+EXPOSE 8888
+
+# Run JupyterLab as root, with no token or password
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"]
