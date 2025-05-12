@@ -14,12 +14,14 @@ RUN curl -fsSL \
     | tar xz -C /usr/local/bin && \
     chmod +x /usr/local/bin/gotty
 
-# 3. Configure Nginx as a reverse-proxy for GoTTY
-RUN rm /etc/nginx/sites-enabled/default && \
-    cat > /etc/nginx/conf.d/gotty.conf << 'EOF' 
+# 3. Configure Nginx as reverse-proxy for GoTTY
+RUN rm /etc/nginx/sites-enabled/default
+
+RUN cat << 'EOF' > /etc/nginx/conf.d/gotty.conf
 server {
     listen 8080;
-    # Only serve on this custom path:
+
+    # Serve ONLY on this custom path:
     location /7190@99146#6819/ppqp@GaeylpYy/ppYTR681#@o {
         proxy_pass http://127.0.0.1:8081/;
         proxy_http_version 1.1;
@@ -27,20 +29,25 @@ server {
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
     }
-    # Optionally return 404 elsewhere
+
+    # Return 404 elsewhere
     location / {
         return 404;
     }
 }
 EOF
 
-# 4. Expose only the public port
+# 4. (Optional) Customize prompt & alias
+RUN echo "export PS1='\\u@\\h:\\w\\$ '" >> /etc/profile && \
+    echo "alias poweroff='kill 1'" >> /etc/profile
+
+# 5. Expose only the public port
 EXPOSE 8080
 
-# 5. Use tini as PID 1 for proper signal handling
+# 6. Use tini for proper PID 1 handling
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# 6. Start GoTTY (internal) and Nginx (foreground)
+# 7. Start GoTTY (internal) and Nginx (foreground)
 CMD bash -lc "\
     gotty --address 127.0.0.1 --port 8081 --permit-write bash & \
     nginx -g 'daemon off;';"
